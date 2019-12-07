@@ -20,16 +20,13 @@ class BBoxInfo:
                              int((bbox['Top'] + bbox['Height']) * video_info['height']))
 
         self.confidence = confidence
-
-        self.color = 'red'
-
+        self.color = (255, 0, 0)  # red color
         self.text_top_left = (self.top_left[0], max(0, self.top_left[1] - 2))
 
     def draw_self(self, img):
-        # TODO: add color, font and size
-        cv2.rectangle(img, self.top_left, self.bottom_right, color=(255, 0, 0), thickness=2)
+        cv2.rectangle(img, self.top_left, self.bottom_right, color=self.color, thickness=2)
         cv2.putText(img, self.name + " {:4.2f}".format(self.confidence), self.text_top_left,
-                    fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(255, 0, 0), thickness=2)
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=self.color, thickness=2)
         return img
 
     def __str__(self):
@@ -55,17 +52,20 @@ def main():
                 all_bbox_info[timestamp] = []
             all_bbox_info[timestamp].append(BBoxInfo(name, ins['BoundingBox'], video_info, ins['Confidence']))
 
+    # TODO: how to match timestamp with frames? current, I match them based on
+    #  timestamp / frame_rate but it seems that they are not matched. Thus,
+    #  I need to discard the last frame bounding box info
     for t, bbox_infos in all_bbox_info.items():
-        if int(t / video_info['fps']) > video.shape[0]:
+        frame_idx = int(t / video_info['fps'])
+        if frame_idx > video.shape[0]:
             continue
-        tmp = video[int(t / video_info['fps']), ...]
+        tmp = video[frame_idx, ...]
         for tt in bbox_infos:
             tmp = tt.draw_self(tmp)
-
-        video[int(t / video_info['fps']), ...] = tmp
-
+        video[frame_idx, ...] = tmp
 
     skvideo.io.vwrite(video_name[:-4] + "_bbox.mp4", video)
+
 
 if __name__ == "__main__":
     main()
